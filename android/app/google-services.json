@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "585623886506",
+    "project_id": "izmirpano-b65ac",
+    "storage_bucket": "izmirpano-b65ac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585623886506:android:f7636222c308c7fdc6ced3",
+        "android_client_info": {
+          "package_name": "com.example.izpano"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCucaZR9c36G4R-PIgZO2g4CdwsRCX3xo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

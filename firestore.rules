@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Belediye koleksiyonu için kurallar
+    match /municipalities/{document=**} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.type == 'municipality';
+      allow update, delete: if request.auth != null 
+        && request.auth.uid == resource.data.uid;
+    }
+    
+    // Şirket koleksiyonu için kurallar
+    match /companies/{document=**} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.type == 'company';
+      allow update, delete: if request.auth != null 
+        && request.auth.uid == resource.data.uid;
+    }
+
+    // Pano koleksiyonu için kurallar
+    match /billboards/{billboardId} {
+      // Belediye kullanıcıları tüm işlemleri yapabilir
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/municipalities/$(request.auth.uid));
+      allow create, update, delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/municipalities/$(request.auth.uid));
+      
+      // Şirket kullanıcıları sadece okuma yapabilir
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/companies/$(request.auth.uid));
+    }
+  }
+} 
