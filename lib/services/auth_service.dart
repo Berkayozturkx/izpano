@@ -2,10 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_type.dart';
 import 'package:flutter/material.dart';
+import 'database_initializer.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final DatabaseInitializer _dbInitializer = DatabaseInitializer();
 
   // Kullanıcı tipini string'e çevirme
   String _userTypeToString(UserType type) {
@@ -17,13 +19,27 @@ class AuthService {
     return type == UserType.municipality ? 'municipalities' : 'companies';
   }
 
-  // Kayıt olma işlemi
-  Future<UserCredential> register({
-    required String email,
-    required String password,
-    required String name,
-    required UserType userType,
-  }) async {
+  // Kullanıcı tipini kontrol et
+  Future<String?> getUserType(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        return userDoc.get('userType') as String?;
+      }
+      return null;
+    } catch (e) {
+      print('Kullanıcı tipi kontrol hatası: $e');
+      return null;
+    }
+  }
+
+  // Kullanıcı kaydı
+  Future<UserCredential> registerWithEmailAndPassword(
+    String email,
+    String password,
+    String userType,
+    Map<String, dynamic> userData,
+  ) async {
     try {
       // Firebase Auth ile kullanıcı oluştur
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
@@ -31,66 +47,95 @@ class AuthService {
         password: password,
       );
 
-      // Firestore'a kullanıcı bilgilerini kaydet
-      await _firestore.collection(_getCollectionName(userType)).doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'name': name,
+      // Kullanıcı dokümanını oluştur
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'email': email,
-        'type': _userTypeToString(userType),
+        'userType': userType,
         'createdAt': FieldValue.serverTimestamp(),
+        ...userData,
       });
 
+      // Kullanıcı tipine göre gerekli koleksiyonları oluştur
+      await _dbInitializer.initializeUserCollections(
+        userCredential.user!.uid,
+        userType,
+      );
+
       return userCredential;
-    } on FirebaseAuthException catch (e) {
-      String message = 'Bir hata oluştu';
-      if (e.code == 'weak-password') {
-        message = 'Şifre çok zayıf';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'Bu e-posta adresi zaten kullanımda';
-      }
-      throw message;
+    } catch (e) {
+      print('Kayıt hatası: $e');
+      rethrow;
     }
   }
 
-  // Giriş yapma işlemi
-  Future<UserCredential> login({
-    required String email,
-    required String password,
-    required UserType userType,
-  }) async {
+  // Giriş yapma
+  Future<UserCredential> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
     try {
-      // Firebase Auth ile giriş yap
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       // Kullanıcı tipini kontrol et
-      DocumentSnapshot userDoc = await _firestore
-          .collection(_getCollectionName(userType))
-          .doc(userCredential.user!.uid)
-          .get();
+      String? userType = await getUserType(userCredential.user!.uid);
+      if (userType == null) {
+        throw Exception('Kullanıcı tipi bulunamadı!');
+      }
 
-      if (!userDoc.exists) {
-        await _auth.signOut();
-        throw 'Bu hesap türü için giriş yapamazsınız';
+      // Koleksiyonların varlığını kontrol et
+      bool collectionsExist = await _dbInitializer.checkCollectionsExist(
+        userCredential.user!.uid,
+        userType,
+      );
+
+      // Eğer koleksiyonlar yoksa oluştur
+      if (!collectionsExist) {
+        await _dbInitializer.initializeUserCollections(
+          userCredential.user!.uid,
+          userType,
+        );
       }
 
       return userCredential;
-    } on FirebaseAuthException catch (e) {
-      String message = 'Bir hata oluştu';
-      if (e.code == 'user-not-found') {
-        message = 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı';
-      } else if (e.code == 'wrong-password') {
-        message = 'Hatalı şifre';
-      }
-      throw message;
+    } catch (e) {
+      print('Giriş hatası: $e');
+      rethrow;
     }
   }
 
-  // Çıkış yapma işlemi
-  Future<void> logout() async {
-    await _auth.signOut();
+  // Çıkış yapma
+  Future<void> signOut(BuildContext context) async {
+    try {
+      await _auth.signOut();
+      // Ana sayfaya yönlendir
+      Navigator.of(context).pushReplacementNamed('/login');
+    } catch (e) {
+      print('Çıkış hatası: $e');
+      rethrow;
+    }
+  }
+
+  // Şifre sıfırlama
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print('Şifre sıfırlama hatası: $e');
+      rethrow;
+    }
+  }
+
+  // Kullanıcı bilgilerini güncelleme
+  Future<void> updateUserProfile(String userId, Map<String, dynamic> data) async {
+    try {
+      await _firestore.collection('users').doc(userId).update(data);
+    } catch (e) {
+      print('Profil güncelleme hatası: $e');
+      rethrow;
+    }
   }
 
   // Mevcut kullanıcıyı alma
@@ -98,31 +143,4 @@ class AuthService {
 
   // Kullanıcı durumu değişikliklerini dinleme
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  Future<UserCredential?> signInWithEmailAndPassword(String email, String password) async {
-    try {
-      return await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-    } catch (e) {
-      print('Sign in error: $e');
-      return null;
-    }
-  }
-
-  Future<void> signOut(BuildContext context) async {
-    try {
-      await _auth.signOut();
-      // Çıkış yapıldıktan sonra login sayfasına yönlendirme
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Çıkış yapılırken bir hata oluştu: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 } 

@@ -3,28 +3,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Billboard {
   final String id;
   final String location;
+  final String description;
+  final String municipalityId;
   final double width;
   final double height;
-  final String technicalSpecs;
-  final double minPrice;
-  final double maxPrice;
-  final String imageUrl;
-  final bool isActive;
+  final String status; // 'available', 'auction', 'rented'
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? auctionEndDate;
+  final double? currentBid;
+  final String? currentBidderId;
+  final double minimumBidIncrement;
 
   Billboard({
     required this.id,
     required this.location,
+    required this.description,
+    required this.municipalityId,
     required this.width,
     required this.height,
-    required this.technicalSpecs,
-    required this.minPrice,
-    required this.maxPrice,
-    required this.imageUrl,
-    required this.isActive,
+    required this.status,
     required this.createdAt,
-    required this.updatedAt,
+    this.auctionEndDate,
+    this.currentBid,
+    this.currentBidderId,
+    this.minimumBidIncrement = 1000.0,
   });
 
   factory Billboard.fromFirestore(DocumentSnapshot doc) {
@@ -32,30 +34,36 @@ class Billboard {
     return Billboard(
       id: doc.id,
       location: data['location'] ?? '',
+      description: data['description'] ?? '',
+      municipalityId: data['municipalityId'] ?? '',
       width: (data['width'] ?? 0.0).toDouble(),
       height: (data['height'] ?? 0.0).toDouble(),
-      technicalSpecs: data['technicalSpecs'] ?? '',
-      minPrice: (data['minPrice'] ?? 0.0).toDouble(),
-      maxPrice: (data['maxPrice'] ?? 0.0).toDouble(),
-      imageUrl: data['imageUrl'] ?? '',
-      isActive: data['isActive'] ?? true,
+      status: data['status'] ?? 'available',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      auctionEndDate: data['auctionEndDate'] != null 
+          ? (data['auctionEndDate'] as Timestamp).toDate()
+          : null,
+      currentBid: (data['currentBid'] ?? 0.0).toDouble(),
+      currentBidderId: data['currentBidderId'],
+      minimumBidIncrement: (data['minimumBidIncrement'] ?? 1000.0).toDouble(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'location': location,
+      'description': description,
+      'municipalityId': municipalityId,
       'width': width,
       'height': height,
-      'technicalSpecs': technicalSpecs,
-      'minPrice': minPrice,
-      'maxPrice': maxPrice,
-      'imageUrl': imageUrl,
-      'isActive': isActive,
+      'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'auctionEndDate': auctionEndDate != null 
+          ? Timestamp.fromDate(auctionEndDate!)
+          : null,
+      'currentBid': currentBid,
+      'currentBidderId': currentBidderId,
+      'minimumBidIncrement': minimumBidIncrement,
     };
   }
 } 

@@ -24,11 +24,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        await _authService.register(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          userType: _selectedUserType,
+        await _authService.registerWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text,
+          _userTypeToString(_selectedUserType),
+          {
+            'name': _nameController.text.trim(),
+          },
         );
         if (mounted) {
           // Kayıt başarılı, giriş ekranına dön
@@ -49,6 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       }
     }
+  }
+
+  String _userTypeToString(UserType type) {
+    return type == UserType.municipality ? 'municipality' : 'company';
   }
 
   @override

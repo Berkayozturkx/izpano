@@ -23,11 +23,23 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        await _authService.login(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          userType: _selectedUserType,
+        final userCredential = await _authService.signInWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
+
+        // Kullanıcı tipini kontrol et
+        final userType = await _authService.getUserType(userCredential.user!.uid);
+        if (userType == null) {
+          throw Exception('Kullanıcı tipi bulunamadı!');
+        }
+
+        // Seçilen kullanıcı tipi ile gerçek kullanıcı tipini karşılaştır
+        final selectedType = _userTypeToString(_selectedUserType);
+        if (userType != selectedType) {
+          throw Exception('Yanlış kullanıcı tipi seçtiniz!');
+        }
+
         if (mounted) {
           // Kullanıcı tipine göre doğru sayfaya yönlendir
           if (_selectedUserType == UserType.municipality) {
@@ -48,6 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     }
+  }
+
+  String _userTypeToString(UserType type) {
+    return type == UserType.municipality ? 'municipality' : 'company';
   }
 
   @override
