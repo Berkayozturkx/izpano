@@ -13,7 +13,10 @@ class BidService {
 
   // Teklif güncelleme
   Future<void> updateBid(String id, Map<String, dynamic> data) async {
-    await _firestore.collection(_collection).doc(id).update(data);
+    await _firestore.collection(_collection).doc(id).update({
+      ...data,
+      'updatedAt': Timestamp.now(),
+    });
   }
 
   // Şirketin aktif tekliflerini getirme
@@ -22,6 +25,7 @@ class BidService {
         .collection(_collection)
         .where('companyId', isEqualTo: companyId)
         .where('status', isEqualTo: 'active')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();
@@ -34,6 +38,7 @@ class BidService {
         .collection(_collection)
         .where('companyId', isEqualTo: companyId)
         .where('status', isEqualTo: 'won')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();

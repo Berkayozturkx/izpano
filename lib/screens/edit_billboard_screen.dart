@@ -9,15 +9,21 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/cloudinary_config.dart';
+import '../models/billboard.dart';
 
-class AddBillboardScreen extends StatefulWidget {
-  const AddBillboardScreen({Key? key}) : super(key: key);
+class EditBillboardScreen extends StatefulWidget {
+  final Billboard billboard;
+
+  const EditBillboardScreen({
+    Key? key,
+    required this.billboard,
+  }) : super(key: key);
 
   @override
-  State<AddBillboardScreen> createState() => _AddBillboardScreenState();
+  State<EditBillboardScreen> createState() => _EditBillboardScreenState();
 }
 
-class _AddBillboardScreenState extends State<AddBillboardScreen> {
+class _EditBillboardScreenState extends State<EditBillboardScreen> {
   final _formKey = GlobalKey<FormState>();
   final _locationController = TextEditingController();
   final _sizeController = TextEditingController();
@@ -27,7 +33,22 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
   LatLng? _selectedLocation;
   GoogleMapController? _mapController;
   File? _selectedImage;
+  String? _currentImageUrl;
   final _imagePicker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _locationController.text = widget.billboard.location;
+    _sizeController.text = '${widget.billboard.width}m x ${widget.billboard.height}m';
+    _priceController.text = widget.billboard.minimumBidIncrement.toString();
+    _descriptionController.text = widget.billboard.description;
+    _currentImageUrl = widget.billboard.imageUrl;
+    _selectedLocation = LatLng(
+      widget.billboard.latitude,
+      widget.billboard.longitude,
+    );
+  }
 
   @override
   void dispose() {
@@ -66,13 +87,11 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
     try {
       setState(() => _isLoading = true);
 
-      // Konum servislerinin açık olup olmadığını kontrol et
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw Exception('Konum servisleri kapalı. Lütfen cihazınızın konum servislerini açın.');
       }
 
-      // Konum izinlerini kontrol et
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -86,7 +105,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        // Mevcut konumu al
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 10),
@@ -94,7 +112,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
 
         final latLng = LatLng(position.latitude, position.longitude);
 
-        // Adres bilgisini al
         try {
           final placemarks = await placemarkFromCoordinates(
             position.latitude,
@@ -121,7 +138,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
           });
         }
 
-        // Haritayı mevcut konuma taşı
         _mapController?.animateCamera(
           CameraUpdate.newLatLngZoom(latLng, 15),
         );
@@ -150,10 +166,8 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
 
   Future<String> _uploadImageToCloudinary(File imageFile) async {
     try {
-      // API isteği için URL
       final url = 'https://api.cloudinary.com/v1_1/${CloudinaryConfig.cloudName}/image/upload';
 
-      // Form verilerini hazırla
       final request = http.MultipartRequest('POST', Uri.parse(url))
         ..fields['api_key'] = CloudinaryConfig.apiKey
         ..fields['timestamp'] = DateTime.now().millisecondsSinceEpoch.toString()
@@ -163,7 +177,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
           imageFile.path,
         ));
 
-      // İsteği gönder
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
       final jsonResponse = json.decode(responseData);
@@ -186,12 +199,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
       );
       return;
     }
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir fotoğraf seçin')),
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -199,16 +206,17 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('Kullanıcı oturumu bulunamadı');
 
-      // Fotoğrafı Cloudinary'ye yükle
-      final imageUrl = await _uploadImageToCloudinary(_selectedImage!);
+      String imageUrl = _currentImageUrl ?? '';
+      if (_selectedImage != null) {
+        imageUrl = await _uploadImageToCloudinary(_selectedImage!);
+      }
 
       // Boyut bilgisini parse et
       final sizeParts = _sizeController.text.split('x');
       final width = double.parse(sizeParts[0].trim().replaceAll('m', ''));
       final height = double.parse(sizeParts[1].trim().replaceAll('m', ''));
 
-      await FirebaseFirestore.instance.collection('billboards').add({
-        'municipalityId': user.uid,
+      await FirebaseFirestore.instance.collection('billboards').doc(widget.billboard.id).update({
         'location': _locationController.text,
         'latitude': _selectedLocation!.latitude,
         'longitude': _selectedLocation!.longitude,
@@ -217,13 +225,11 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
         'minimumBidIncrement': double.parse(_priceController.text),
         'description': _descriptionController.text,
         'imageUrl': imageUrl,
-        'status': 'available',
-        'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('İlan panosu başarıyla eklendi')),
+          const SnackBar(content: Text('İlan panosu başarıyla güncellendi')),
         );
         Navigator.pop(context);
       }
@@ -244,7 +250,7 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yeni İlan Panosu Ekle'),
+        title: const Text('İlan Panosu Düzenle'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -272,17 +278,26 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
                             width: double.infinity,
                           ),
                         )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.add_photo_alternate, size: 50, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text(
-                              'Fotoğraf Seç',
-                              style: TextStyle(color: Colors.grey),
+                      : _currentImageUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                _currentImageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              ),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.add_photo_alternate, size: 50, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Fotoğraf Seç',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -297,7 +312,7 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
                   borderRadius: BorderRadius.circular(8),
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: _selectedLocation ?? const LatLng(41.0082, 28.9784), // İstanbul
+                      target: _selectedLocation ?? const LatLng(41.0082, 28.9784),
                       zoom: 12,
                     ),
                     onMapCreated: (controller) => _mapController = controller,
@@ -365,6 +380,9 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen boyut bilgisini girin';
                   }
+                  if (!RegExp(r'^\d+m\s*x\s*\d+m$').hasMatch(value)) {
+                    return 'Geçerli bir boyut formatı girin (örn: 3m x 4m)';
+                  }
                   return null;
                 },
               ),
@@ -406,7 +424,7 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
                 onPressed: _isLoading ? null : _submitForm,
                 child: _isLoading
                     ? const CircularProgressIndicator()
-                    : const Text('İlan Panosu Ekle'),
+                    : const Text('Değişiklikleri Kaydet'),
               ),
             ],
           ),

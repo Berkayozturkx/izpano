@@ -13,6 +13,9 @@ class Billboard {
   final double? currentBid;
   final String? currentBidderId;
   final double minimumBidIncrement;
+  final String? imageUrl;
+  final double latitude;
+  final double longitude;
 
   Billboard({
     required this.id,
@@ -27,6 +30,9 @@ class Billboard {
     this.currentBid,
     this.currentBidderId,
     this.minimumBidIncrement = 1000.0,
+    this.imageUrl,
+    required this.latitude,
+    required this.longitude,
   });
 
   factory Billboard.fromFirestore(DocumentSnapshot doc) {
@@ -46,6 +52,9 @@ class Billboard {
       currentBid: (data['currentBid'] ?? 0.0).toDouble(),
       currentBidderId: data['currentBidderId'],
       minimumBidIncrement: (data['minimumBidIncrement'] ?? 1000.0).toDouble(),
+      imageUrl: data['imageUrl'],
+      latitude: (data['latitude'] ?? 0.0).toDouble(),
+      longitude: (data['longitude'] ?? 0.0).toDouble(),
     );
   }
 
@@ -64,6 +73,9 @@ class Billboard {
       'currentBid': currentBid,
       'currentBidderId': currentBidderId,
       'minimumBidIncrement': minimumBidIncrement,
+      'imageUrl': imageUrl,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 } 
