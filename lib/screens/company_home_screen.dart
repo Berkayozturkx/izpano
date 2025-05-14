@@ -291,6 +291,12 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
                   return const SizedBox.shrink();
                 }
 
+                if (billboard.status != 'active' || 
+                    billboard.auctionEndDate == null || 
+                    billboard.auctionEndDate!.isBefore(DateTime.now())) {
+                  return const SizedBox.shrink();
+                }
+
                 final hoursLeft = billboard.auctionEndDate!.difference(DateTime.now()).inHours;
                 final minutesLeft = billboard.auctionEndDate!.difference(DateTime.now()).inMinutes % 60;
                 final isHighestBid = billboard.currentBidderId == AuthService().currentUser!.uid;
@@ -430,29 +436,67 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: 3, // TODO: Replace with actual won bids count
-            itemBuilder: (context, index) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  leading: const Icon(Icons.emoji_events),
-                  title: Text('Pano ${index + 1}'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Kazanan Teklif: ₺20,000'),
-                      const Text('Bitiş Tarihi: 24.03.2024'),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.info_outline),
-                    onPressed: () {
-                      // TODO: Show billboard details
+          child: StreamBuilder<List<Bid>>(
+            stream: _bidService.getWonBidsByCompany(_authService.currentUser!.uid),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Hata: ${snapshot.error}'),
+                );
+              }
+
+              final bids = snapshot.data ?? [];
+              if (bids.isEmpty) {
+                return const Center(
+                  child: Text('Henüz kazandığınız teklif bulunmamaktadır.'),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: bids.length,
+                itemBuilder: (context, index) {
+                  final bid = bids[index];
+                  return FutureBuilder<Billboard?>(
+                    future: _billboardService.getBillboard(bid.billboardId),
+                    builder: (context, billboardSnapshot) {
+                      if (billboardSnapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final billboard = billboardSnapshot.data;
+                      if (billboard == null) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: ListTile(
+                          leading: const Icon(Icons.emoji_events, color: Colors.amber),
+                          title: Text(billboard.location),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Kazanan Teklif: ₺${NumberFormat('#,##0.00').format(bid.amount)}'),
+                              Text('Boyut: ${billboard.width}m x ${billboard.height}m'),
+                              Text('Bitiş Tarihi: ${DateFormat('dd.MM.yyyy').format(billboard.auctionEndDate!)}'),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.info_outline),
+                            onPressed: () {
+                              // TODO: Show billboard details
+                            },
+                          ),
+                        ),
+                      );
                     },
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),

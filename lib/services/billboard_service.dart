@@ -80,11 +80,34 @@ class BillboardService {
       final billboardDoc = await _firestore.collection('billboards').doc(billboardId).get();
       final billboard = Billboard.fromFirestore(billboardDoc);
 
+      // Panoya ait tüm teklifleri getir
+      final bidsSnapshot = await _firestore
+          .collection('bids')
+          .where('billboardId', isEqualTo: billboardId)
+          .get();
+
       if (billboard.currentBidderId != null) {
         // Kazanan teklifi onayla
         await _firestore.collection('billboards').doc(billboardId).update({
           'status': 'rented',
         });
+
+        // Kazanan teklifi güncelle
+        for (var bidDoc in bidsSnapshot.docs) {
+          final bid = Bid.fromFirestore(bidDoc);
+          if (bid.companyId == billboard.currentBidderId) {
+            await _firestore.collection('bids').doc(bidDoc.id).update({
+              'status': 'won',
+              'updatedAt': Timestamp.now(),
+            });
+          } else {
+            // Diğer teklifleri kaybedilmiş olarak işaretle
+            await _firestore.collection('bids').doc(bidDoc.id).update({
+              'status': 'lost',
+              'updatedAt': Timestamp.now(),
+            });
+          }
+        }
       } else {
         // Teklif yoksa panoyu tekrar müsait hale getir
         await _firestore.collection('billboards').doc(billboardId).update({
@@ -93,6 +116,14 @@ class BillboardService {
           'currentBid': null,
           'currentBidderId': null,
         });
+
+        // Tüm teklifleri iptal et
+        for (var bidDoc in bidsSnapshot.docs) {
+          await _firestore.collection('bids').doc(bidDoc.id).update({
+            'status': 'cancelled',
+            'updatedAt': Timestamp.now(),
+          });
+        }
       }
     } catch (e) {
       print('Açık artırma sonlandırma hatası: $e');

@@ -59,7 +59,15 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && 
         exists(/databases/$(database)/documents/companies/$(request.auth.uid));
-      allow update, delete: if request.auth != null && 
+      allow update: if request.auth != null && (
+        // Şirket kullanıcıları kendi tekliflerini güncelleyebilir
+        (exists(/databases/$(database)/documents/companies/$(request.auth.uid)) &&
+        resource.data.companyId == request.auth.uid) ||
+        // Belediye kullanıcıları açık artırma sonlandırma sırasında teklifleri güncelleyebilir
+        (exists(/databases/$(database)/documents/municipalities/$(request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
+      allow delete: if request.auth != null && 
         exists(/databases/$(database)/documents/companies/$(request.auth.uid)) &&
         resource.data.companyId == request.auth.uid;
     }
