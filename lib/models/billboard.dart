@@ -78,4 +78,25 @@ class Billboard {
       'longitude': longitude,
     };
   }
+
+  factory Billboard.fromMap(Map<String, dynamic> map) {
+    return Billboard(
+      id: map['id'] as String,
+      municipalityId: map['municipalityId'] as String,
+      location: map['location'] as String,
+      description: map['description'] as String,
+      width: (map['width'] as num).toDouble(),
+      height: (map['height'] as num).toDouble(),
+      imageUrl: map['imageUrl'] as String?,
+      status: map['status'] as String,
+      minimumBidIncrement: (map['minimumBidIncrement'] as num).toDouble(),
+      currentBid: (map['currentBid'] as num?)?.toDouble(),
+      auctionEndDate: map['auctionEndDate'] != null 
+          ? (map['auctionEndDate'] as Timestamp).toDate()
+          : null,
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+    );
+  }
 } 

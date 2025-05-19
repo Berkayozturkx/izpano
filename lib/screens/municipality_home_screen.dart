@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../services/billboard_service.dart';
 import '../services/company_service.dart';
 import '../services/bid_service.dart';
+import '../services/analytics_service.dart';
 import '../models/billboard.dart';
 import '../models/company.dart';
 import '../models/bid.dart';
@@ -23,6 +24,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
   final BillboardService _billboardService = BillboardService();
   final CompanyService _companyService = CompanyService();
   final BidService _bidService = BidService();
+  final AnalyticsService _analyticsService = AnalyticsService();
   int _selectedIndex = 0;
 
   @override
@@ -550,33 +552,101 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
               _buildAnalyticsCard(
                 'Aylık Gelir',
                 Icons.calendar_today,
-                '₺45,000',
+                FutureBuilder<Map<String, dynamic>>(
+                  future: _analyticsService.getMonthlyRevenue(_authService.currentUser!.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return Text('Hata: ${snapshot.error}');
+                    }
+                    final data = snapshot.data!;
+                    return Text(
+                      '₺${data['totalRevenue'].toStringAsFixed(2)}\n${data['billboardCount']} Pano',
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                ),
                 () {
-                  // TODO: Show monthly analytics
+                  // TODO: Show monthly analytics details
                 },
               ),
               _buildAnalyticsCard(
                 'Yıllık Gelir',
                 Icons.calendar_month,
-                '₺540,000',
+                FutureBuilder<Map<String, dynamic>>(
+                  future: _analyticsService.getYearlyRevenue(_authService.currentUser!.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return Text('Hata: ${snapshot.error}');
+                    }
+                    final data = snapshot.data!;
+                    return Text(
+                      '₺${data['totalRevenue'].toStringAsFixed(2)}\n${data['billboardCount']} Pano',
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                ),
                 () {
-                  // TODO: Show yearly analytics
+                  // TODO: Show yearly analytics details
                 },
               ),
               _buildAnalyticsCard(
                 'Pano Bazlı',
                 Icons.view_agenda,
-                'Detaylı Rapor',
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _analyticsService.getBillboardAnalytics(_authService.currentUser!.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return Text('Hata: ${snapshot.error}');
+                    }
+                    final data = snapshot.data!;
+                    final totalRevenue = data.fold<double>(
+                      0,
+                      (sum, item) => sum + (item['revenue'] as double),
+                    );
+                    return Text(
+                      '₺${totalRevenue.toStringAsFixed(2)}\n${data.length} Pano',
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                ),
                 () {
-                  // TODO: Show billboard-based analytics
+                  // TODO: Show billboard-based analytics details
                 },
               ),
               _buildAnalyticsCard(
                 'Açık Artırma',
                 Icons.gavel,
-                'Detaylı Rapor',
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _analyticsService.getAuctionAnalytics(_authService.currentUser!.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return Text('Hata: ${snapshot.error}');
+                    }
+                    final data = snapshot.data!;
+                    final totalRevenue = data.fold<double>(
+                      0,
+                      (sum, item) => sum + (item['finalBid'] as double),
+                    );
+                    return Text(
+                      '₺${totalRevenue.toStringAsFixed(2)}\n${data.length} Açık Artırma',
+                      textAlign: TextAlign.center,
+                    );
+                  },
+                ),
                 () {
-                  // TODO: Show auction-based analytics
+                  // TODO: Show auction-based analytics details
                 },
               ),
             ],
@@ -672,7 +742,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
   Widget _buildAnalyticsCard(
     String title,
     IconData icon,
-    String value,
+    Widget value,
     VoidCallback onTap,
   ) {
     return Card(
@@ -696,13 +766,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
+            value,
           ],
         ),
       ),
