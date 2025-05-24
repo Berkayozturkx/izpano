@@ -5,6 +5,7 @@ import '../services/bid_service.dart';
 import '../models/billboard.dart';
 import '../models/bid.dart';
 import 'package:intl/intl.dart';
+import '../services/company_service.dart';
 
 class CompanyHomeScreen extends StatefulWidget {
   const CompanyHomeScreen({Key? key}) : super(key: key);
@@ -17,13 +18,76 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
   final AuthService _authService = AuthService();
   final BillboardService _billboardService = BillboardService();
   final BidService _bidService = BidService();
+  final CompanyService _companyService = CompanyService();
   int _selectedIndex = 0;
   final Map<String, TextEditingController> _bidControllers = {};
+  
+  // Add controllers for company profile fields
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _taxNumberController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyProfile();
+  }
 
   @override
   void dispose() {
     _bidControllers.values.forEach((controller) => controller.dispose());
+    _nameController.dispose();
+    _taxNumberController.dispose();
+    _addressController.dispose();
+    _phoneNumberController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCompanyProfile() async {
+    try {
+      final company = await _companyService.getCompany(_authService.currentUser!.uid);
+      if (company != null) {
+        setState(() {
+          _nameController.text = company.name;
+          _taxNumberController.text = company.taxNumber;
+          _addressController.text = company.address;
+          _phoneNumberController.text = company.phoneNumber;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profil yüklenirken hata oluştu: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateCompanyProfile() async {
+    try {
+      await _companyService.updateCompany(
+        _authService.currentUser!.uid,
+        {
+          'name': _nameController.text,
+          'taxNumber': _taxNumberController.text,
+          'address': _addressController.text,
+          'phoneNumber': _phoneNumberController.text,
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil bilgileri başarıyla güncellendi')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profil güncellenirken hata oluştu: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _submitBid(String billboardId, String currentBid) async {
@@ -534,44 +598,42 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: _nameController,
                     decoration: const InputDecoration(
                       labelText: 'Firma Adı',
                       border: OutlineInputBorder(),
                     ),
-                    // TODO: Add controller and initial value
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: _taxNumberController,
                     decoration: const InputDecoration(
                       labelText: 'Vergi Numarası',
                       border: OutlineInputBorder(),
                     ),
-                    // TODO: Add controller and initial value
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: _addressController,
                     decoration: const InputDecoration(
                       labelText: 'Adres',
                       border: OutlineInputBorder(),
                     ),
                     maxLines: 3,
-                    // TODO: Add controller and initial value
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: _phoneNumberController,
                     decoration: const InputDecoration(
                       labelText: 'İletişim Numarası',
                       border: OutlineInputBorder(),
                     ),
-                    // TODO: Add controller and initial value
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Save company profile
-                      },
+                      onPressed: _updateCompanyProfile,
                       child: const Text('Bilgileri Güncelle'),
                     ),
                   ),
@@ -594,16 +656,55 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 5, // TODO: Replace with actual history count
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        leading: const Icon(Icons.history),
-                        title: Text('Pano ${index + 1}'),
-                        subtitle: const Text('Teklif: ₺15,000'),
-                        trailing: const Text('24.03.2024'),
+                  StreamBuilder<List<Bid>>(
+                    stream: _bidService.getWonBidsByCompany(_authService.currentUser!.uid),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Hata: ${snapshot.error}'),
+                        );
+                      }
+
+                      final bids = snapshot.data ?? [];
+                      if (bids.isEmpty) {
+                        return const Center(
+                          child: Text('Henüz kazandığınız teklif bulunmamaktadır.'),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: bids.length,
+                        itemBuilder: (context, index) {
+                          final bid = bids[index];
+                          return FutureBuilder<Billboard?>(
+                            future: _billboardService.getBillboard(bid.billboardId),
+                            builder: (context, billboardSnapshot) {
+                              if (billboardSnapshot.connectionState == ConnectionState.waiting) {
+                                return const ListTile(
+                                  title: Text('Pano bilgisi yükleniyor...'),
+                                );
+                              }
+
+                              final billboard = billboardSnapshot.data;
+                              if (billboard == null) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return ListTile(
+                                leading: const Icon(Icons.history),
+                                title: Text(billboard.location),
+                                subtitle: Text('Teklif: ₺${NumberFormat('#,##0.00').format(bid.amount)}'),
+                                trailing: Text(DateFormat('dd.MM.yyyy').format(bid.createdAt)),
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   ),
