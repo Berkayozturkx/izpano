@@ -19,11 +19,13 @@ class _StartAuctionScreenState extends State<StartAuctionScreen> {
   final _billboardService = BillboardService();
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
   final _minimumBidController = TextEditingController();
+  final _minimumPriceController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _minimumBidController.dispose();
+    _minimumPriceController.dispose();
     super.dispose();
   }
 
@@ -31,7 +33,7 @@ class _StartAuctionScreenState extends State<StartAuctionScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _endDate,
-      firstDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null && picked != _endDate) {
@@ -51,6 +53,7 @@ class _StartAuctionScreenState extends State<StartAuctionScreen> {
         widget.billboard.id,
         _endDate,
         double.parse(_minimumBidController.text),
+        double.parse(_minimumPriceController.text),
       );
 
       if (mounted) {
@@ -127,11 +130,22 @@ class _StartAuctionScreenState extends State<StartAuctionScreen> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      ListTile(
-                        title: const Text('Bitiş Tarihi'),
-                        subtitle: Text(_endDate.toString().split('.')[0]),
-                        trailing: const Icon(Icons.calendar_today),
-                        onTap: _selectDate,
+                      TextFormField(
+                        controller: _minimumPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Minimum Fiyat (TL)',
+                          hintText: 'Örn: 5000',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Lütfen minimum fiyatı girin';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Geçerli bir sayı girin';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -154,6 +168,15 @@ class _StartAuctionScreenState extends State<StartAuctionScreen> {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('Bitiş Tarihi'),
+                subtitle: Text(
+                  '${_endDate.day}/${_endDate.month}/${_endDate.year}',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: _selectDate,
               ),
               const SizedBox(height: 24),
               ElevatedButton(

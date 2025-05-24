@@ -59,12 +59,13 @@ class BillboardService {
   }
 
   // Açık artırma başlat
-  Future<void> startAuction(String billboardId, DateTime endDate, double minimumBidIncrement) async {
+  Future<void> startAuction(String billboardId, DateTime endDate, double minimumBidIncrement, double minimumPrice) async {
     try {
       await _firestore.collection('billboards').doc(billboardId).update({
         'status': 'active',
         'auctionEndDate': Timestamp.fromDate(endDate),
         'minimumBidIncrement': minimumBidIncrement,
+        'minimumPrice': minimumPrice,
         'currentBid': 0.0,
         'currentBidderId': null,
       });

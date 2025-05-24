@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/custom_card.dart';
+import '../widgets/custom_button.dart';
 import '../services/auth_service.dart';
 import '../services/billboard_service.dart';
 import '../services/company_service.dart';
@@ -75,6 +78,8 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppTheme.primaryColor,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.view_agenda),
@@ -109,14 +114,13 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'İlan Panoları',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              ElevatedButton.icon(
+              CustomButton(
+                text: 'Yeni Pano',
+                icon: Icons.add,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -125,8 +129,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.add),
-                label: const Text('Yeni Pano'),
+                width: 150,
               ),
             ],
           ),
@@ -152,13 +155,13 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   final billboard = snapshot.data![index];
-                  return Card(
+                  return CustomCard(
                     margin: const EdgeInsets.only(bottom: 16),
                     child: Column(
                       children: [
                         if (billboard.imageUrl != null)
                           ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                             child: Image.network(
                               billboard.imageUrl!,
                               height: 200,
@@ -167,28 +170,29 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                             ),
                           ),
                         ListTile(
-                      title: Text(billboard.location),
+                          title: Text(billboard.location),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(billboard.description),
                               const SizedBox(height: 4),
                               Text('Boyut: ${billboard.width}m x ${billboard.height}m'),
+                              Text('Minimum Fiyat: ₺${billboard.minimumPrice.toStringAsFixed(2)}'),
                               Text('Minimum Teklif: ₺${billboard.minimumBidIncrement.toStringAsFixed(2)}'),
                             ],
                           ),
-                      trailing: PopupMenuButton(
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('Düzenle'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Sil'),
-                          ),
-                        ],
-                        onSelected: (value) async {
+                          trailing: PopupMenuButton(
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Düzenle'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Sil'),
+                              ),
+                            ],
+                            onSelected: (value) async {
                               if (value == 'edit') {
                                 Navigator.push(
                                   context,
@@ -197,33 +201,33 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                                   ),
                                 );
                               } else if (value == 'delete') {
-                            final shouldDelete = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Pano Sil'),
-                                content: const Text('Bu panoyu silmek istediğinizden emin misiniz?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
-                                    child: const Text('İptal'),
+                                final shouldDelete = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Pano Sil'),
+                                    content: const Text('Bu panoyu silmek istediğinizden emin misiniz?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('İptal'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Sil'),
+                                      ),
+                                    ],
                                   ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    child: const Text('Sil'),
-                                  ),
-                                ],
-                              ),
-                            );
+                                );
 
-                            if (shouldDelete == true) {
-                              await _billboardService.deleteBillboard(billboard.id);
-                            }
-                          }
-                        },
-                      ),
-                      onTap: () {
-                        // TODO: Navigate to billboard details
-                      },
+                                if (shouldDelete == true) {
+                                  await _billboardService.deleteBillboard(billboard.id);
+                                }
+                              }
+                            },
+                          ),
+                          onTap: () {
+                            // TODO: Navigate to billboard details
+                          },
                         ),
                       ],
                     ),
@@ -245,14 +249,13 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Açık Artırmalar',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              ElevatedButton.icon(
+              CustomButton(
+                text: 'Yeni Açık Artırma',
+                icon: Icons.add,
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -326,8 +329,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.add),
-                label: const Text('Yeni Açık Artırma'),
+                width: 180,
               ),
             ],
           ),
@@ -358,13 +360,13 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                   final hoursLeft = timeLeft.inHours.remainder(24);
                   final minutesLeft = timeLeft.inMinutes.remainder(60);
 
-                  return Card(
+                  return CustomCard(
                     margin: const EdgeInsets.only(bottom: 16),
                     child: Column(
                       children: [
                         if (billboard.imageUrl != null)
                           ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                             child: Image.network(
                               billboard.imageUrl!,
                               height: 200,
@@ -373,17 +375,17 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                             ),
                           ),
                         ListTile(
-                      title: Text(billboard.location),
+                          title: Text(billboard.location),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Boyut: ${billboard.width}m x ${billboard.height}m'),
-                              Text('Minimum Teklif Artışı: ₺${billboard.minimumBidIncrement.toStringAsFixed(2)}'),
-                              Text('Mevcut Teklif: ₺${billboard.currentBid?.toStringAsFixed(2) ?? '0.00'}'),
+                              Text('Minimum Fiyat: ₺${billboard.minimumPrice.toStringAsFixed(2)}'),
+                              Text('Minimum Teklif: ₺${billboard.minimumBidIncrement.toStringAsFixed(2)}'),
                               Text(
                                 'Kalan Süre: ${daysLeft}g ${hoursLeft}s ${minutesLeft}dk',
                                 style: TextStyle(
-                                  color: timeLeft.isNegative ? Colors.red : Colors.green,
+                                  color: timeLeft.isNegative ? AppTheme.errorColor : AppTheme.successColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -451,14 +453,11 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
   Widget _buildBidsTab() {
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             'Teklif Yönetimi',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
         Expanded(
@@ -482,7 +481,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   final billboard = snapshot.data![index];
-                  return Card(
+                  return CustomCard(
                     margin: const EdgeInsets.only(bottom: 16),
                     child: InkWell(
                       onTap: () {
@@ -497,7 +496,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                         children: [
                           if (billboard.imageUrl != null)
                             ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                               child: Image.network(
                                 billboard.imageUrl!,
                                 height: 200,
@@ -511,8 +510,8 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Boyut: ${billboard.width}m x ${billboard.height}m'),
-                                Text('Minimum Teklif Artışı: ₺${billboard.minimumBidIncrement.toStringAsFixed(2)}'),
-                                Text('Mevcut En Yüksek Teklif: ₺${billboard.currentBid?.toStringAsFixed(2) ?? '0.00'}'),
+                                Text('Minimum Fiyat: ₺${billboard.minimumPrice.toStringAsFixed(2)}'),
+                                Text('Minimum Teklif: ₺${billboard.minimumBidIncrement.toStringAsFixed(2)}'),
                               ],
                             ),
                           ),
@@ -532,14 +531,11 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
   Widget _buildAnalyticsTab() {
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             'Gelir Analizi',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
         Expanded(
@@ -664,19 +660,17 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Firma Yönetimi',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              ElevatedButton.icon(
+              CustomButton(
+                text: 'Firma Onayları',
+                icon: Icons.business,
                 onPressed: () {
                   // TODO: Navigate to company approval screen
                 },
-                icon: const Icon(Icons.business),
-                label: const Text('Firma Onayları'),
+                width: 180,
               ),
             ],
           ),
@@ -702,7 +696,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   final company = snapshot.data![index];
-                  return Card(
+                  return CustomCard(
                     margin: const EdgeInsets.only(bottom: 16),
                     child: ListTile(
                       leading: const Icon(Icons.business),
@@ -713,12 +707,14 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.check_circle_outline),
+                            color: AppTheme.successColor,
                             onPressed: () async {
                               await _companyService.updateCompanyStatus(company.id, 'approved');
                             },
                           ),
                           IconButton(
                             icon: const Icon(Icons.block),
+                            color: AppTheme.errorColor,
                             onPressed: () async {
                               await _companyService.updateCompanyStatus(company.id, 'blacklisted');
                             },
@@ -745,30 +741,27 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
     Widget value,
     VoidCallback onTap,
   ) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 48,
-              color: Theme.of(context).primaryColor,
+    return CustomCard(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: AppTheme.primaryColor,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            value,
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          value,
+        ],
       ),
     );
   }

@@ -21,7 +21,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
   final _formKey = GlobalKey<FormState>();
   final _locationController = TextEditingController();
   final _sizeController = TextEditingController();
-  final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isLoading = false;
   LatLng? _selectedLocation;
@@ -33,7 +32,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
   void dispose() {
     _locationController.dispose();
     _sizeController.dispose();
-    _priceController.dispose();
     _descriptionController.dispose();
     _mapController?.dispose();
     super.dispose();
@@ -214,7 +212,6 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
         'longitude': _selectedLocation!.longitude,
         'width': width,
         'height': height,
-        'minimumBidIncrement': double.parse(_priceController.text),
         'description': _descriptionController.text,
         'imageUrl': imageUrl,
         'status': 'available',
@@ -370,28 +367,10 @@ class _AddBillboardScreenState extends State<AddBillboardScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Fiyat (TL)',
-                  hintText: 'Aylık kiralama fiyatı',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Lütfen fiyat bilgisini girin';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Geçerli bir sayı girin';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: 'Açıklama',
-                  hintText: 'İlan panosu hakkında ek bilgiler',
+                  hintText: 'İlan panosu hakkında açıklama',
                 ),
                 maxLines: 3,
                 validator: (value) {

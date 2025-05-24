@@ -28,7 +28,16 @@ class BidService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();
+      // Her pano için en yüksek teklifi bul
+      Map<String, Bid> highestBids = {};
+      for (var doc in snapshot.docs) {
+        final bid = Bid.fromFirestore(doc);
+        if (!highestBids.containsKey(bid.billboardId) || 
+            bid.amount > highestBids[bid.billboardId]!.amount) {
+          highestBids[bid.billboardId] = bid;
+        }
+      }
+      return highestBids.values.toList();
     });
   }
 
@@ -41,7 +50,16 @@ class BidService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();
+      // Her pano için kazanılan en yüksek teklifi bul
+      Map<String, Bid> highestWonBids = {};
+      for (var doc in snapshot.docs) {
+        final bid = Bid.fromFirestore(doc);
+        if (!highestWonBids.containsKey(bid.billboardId) || 
+            bid.amount > highestWonBids[bid.billboardId]!.amount) {
+          highestWonBids[bid.billboardId] = bid;
+        }
+      }
+      return highestWonBids.values.toList();
     });
   }
 

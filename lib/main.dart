@@ -7,6 +7,7 @@ import 'screens/municipality_home_screen.dart';
 import 'screens/company_home_screen.dart';
 import 'services/auth_service.dart';
 import 'models/user_type.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   try {
@@ -14,25 +15,22 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    runApp(const MainApp());
+    runApp(const MyApp());
   } catch (e) {
     print('Firebase initialization error: $e');
     // Firebase başlatılamazsa bile uygulamayı başlat
-    runApp(const MainApp());
+    runApp(const MyApp());
   }
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'İzPano',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       initialRoute: '/',
       routes: {
         '/': (context) => StreamBuilder(
