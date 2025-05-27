@@ -58,7 +58,10 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
               );
 
               if (shouldLogout == true) {
-                await _authService.signOut(context);
+                await _authService.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushReplacementNamed('/login');
+                }
               }
             },
           ),
@@ -254,7 +257,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               CustomButton(
-                text: 'Yeni Açık Artırma',
+                text: 'Yeni Açık A.',
                 icon: Icons.add,
                 onPressed: () {
                   showDialog(
@@ -329,7 +332,7 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
                     ),
                   );
                 },
-                width: 180,
+                width: 150,
               ),
             ],
           ),
@@ -657,22 +660,9 @@ class _MunicipalityHomeScreenState extends State<MunicipalityHomeScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Firma Yönetimi',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              CustomButton(
-                text: 'Firma Onayları',
-                icon: Icons.business,
-                onPressed: () {
-                  // TODO: Navigate to company approval screen
-                },
-                width: 180,
-              ),
-            ],
+          child: Text(
+            'Firma Yönetimi',
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
         Expanded(

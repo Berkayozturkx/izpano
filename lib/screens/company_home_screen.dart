@@ -151,7 +151,10 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
               );
 
               if (shouldLogout == true) {
-                await _authService.signOut(context);
+                await _authService.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushReplacementNamed('/login');
+                }
               }
             },
           ),

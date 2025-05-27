@@ -107,11 +107,9 @@ class AuthService {
   }
 
   // Çıkış yapma
-  Future<void> signOut(BuildContext context) async {
+  Future<void> signOut() async {
     try {
       await _auth.signOut();
-      // Ana sayfaya yönlendir
-      Navigator.of(context).pushReplacementNamed('/login');
     } catch (e) {
       print('Çıkış hatası: $e');
       rethrow;
