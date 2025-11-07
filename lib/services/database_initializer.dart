@@ -43,6 +43,9 @@ class DatabaseInitializer {
       height: 3.0,
       status: 'available',
       createdAt: DateTime.now(),
+      latitude: 41.0082,
+      longitude: 28.9784,
+      minimumBidIncrement: 1000.0,
     );
 
     await billboardRef.set(sampleBillboard.toMap());

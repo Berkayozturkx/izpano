@@ -13,7 +13,10 @@ class BidService {
 
   // Teklif güncelleme
   Future<void> updateBid(String id, Map<String, dynamic> data) async {
-    await _firestore.collection(_collection).doc(id).update(data);
+    await _firestore.collection(_collection).doc(id).update({
+      ...data,
+      'updatedAt': Timestamp.now(),
+    });
   }
 
   // Şirketin aktif tekliflerini getirme
@@ -22,9 +25,19 @@ class BidService {
         .collection(_collection)
         .where('companyId', isEqualTo: companyId)
         .where('status', isEqualTo: 'active')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();
+      // Her pano için en yüksek teklifi bul
+      Map<String, Bid> highestBids = {};
+      for (var doc in snapshot.docs) {
+        final bid = Bid.fromFirestore(doc);
+        if (!highestBids.containsKey(bid.billboardId) || 
+            bid.amount > highestBids[bid.billboardId]!.amount) {
+          highestBids[bid.billboardId] = bid;
+        }
+      }
+      return highestBids.values.toList();
     });
   }
 
@@ -34,9 +47,19 @@ class BidService {
         .collection(_collection)
         .where('companyId', isEqualTo: companyId)
         .where('status', isEqualTo: 'won')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => Bid.fromFirestore(doc)).toList();
+      // Her pano için kazanılan en yüksek teklifi bul
+      Map<String, Bid> highestWonBids = {};
+      for (var doc in snapshot.docs) {
+        final bid = Bid.fromFirestore(doc);
+        if (!highestWonBids.containsKey(bid.billboardId) || 
+            bid.amount > highestWonBids[bid.billboardId]!.amount) {
+          highestWonBids[bid.billboardId] = bid;
+        }
+      }
+      return highestWonBids.values.toList();
     });
   }
 

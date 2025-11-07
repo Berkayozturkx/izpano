@@ -13,6 +13,10 @@ class Billboard {
   final double? currentBid;
   final String? currentBidderId;
   final double minimumBidIncrement;
+  final double minimumPrice;
+  final String? imageUrl;
+  final double latitude;
+  final double longitude;
 
   Billboard({
     required this.id,
@@ -27,6 +31,10 @@ class Billboard {
     this.currentBid,
     this.currentBidderId,
     this.minimumBidIncrement = 1000.0,
+    this.minimumPrice = 0.0,
+    this.imageUrl,
+    required this.latitude,
+    required this.longitude,
   });
 
   factory Billboard.fromFirestore(DocumentSnapshot doc) {
@@ -46,6 +54,10 @@ class Billboard {
       currentBid: (data['currentBid'] ?? 0.0).toDouble(),
       currentBidderId: data['currentBidderId'],
       minimumBidIncrement: (data['minimumBidIncrement'] ?? 1000.0).toDouble(),
+      minimumPrice: (data['minimumPrice'] ?? 0.0).toDouble(),
+      imageUrl: data['imageUrl'],
+      latitude: (data['latitude'] ?? 0.0).toDouble(),
+      longitude: (data['longitude'] ?? 0.0).toDouble(),
     );
   }
 
@@ -64,6 +76,32 @@ class Billboard {
       'currentBid': currentBid,
       'currentBidderId': currentBidderId,
       'minimumBidIncrement': minimumBidIncrement,
+      'minimumPrice': minimumPrice,
+      'imageUrl': imageUrl,
+      'latitude': latitude,
+      'longitude': longitude,
     };
+  }
+
+  factory Billboard.fromMap(Map<String, dynamic> map) {
+    return Billboard(
+      id: map['id'] as String,
+      municipalityId: map['municipalityId'] as String,
+      location: map['location'] as String,
+      description: map['description'] as String,
+      width: (map['width'] as num).toDouble(),
+      height: (map['height'] as num).toDouble(),
+      imageUrl: map['imageUrl'] as String?,
+      status: map['status'] as String,
+      minimumBidIncrement: (map['minimumBidIncrement'] as num).toDouble(),
+      minimumPrice: (map['minimumPrice'] as num).toDouble(),
+      currentBid: (map['currentBid'] as num?)?.toDouble(),
+      auctionEndDate: map['auctionEndDate'] != null 
+          ? (map['auctionEndDate'] as Timestamp).toDate()
+          : null,
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+    );
   }
 } 
